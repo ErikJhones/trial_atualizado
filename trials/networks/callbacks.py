@@ -227,24 +227,48 @@ class EvalCallback(EventCallback):
                 episode_training_rewards,
                 episode_training_lengths,
             )
-            wandb.log(
-                {
-                    "eval/e_mean_reward": mean_eval_reward.item(),
-                    "eval/e_mean_ep_length": mean_eval_ep_length.item(),
-                    "train/t_mean_reward": mean_training_reward.item(),
-                    "train/t_mean_ep_length": mean_training_ep_length.item(),
-                    "eval/metric": metric,
-                    "time/total_timesteps": self.num_timesteps,
-                },
-                step=self.num_timesteps
-            )
+            if wandb.run is not None:
+                wandb.log(
+                    {
+                        "eval/e_mean_reward": mean_eval_reward.item(),
+                        "eval/e_mean_ep_length": mean_eval_ep_length.item(),
+                        "train/t_mean_reward": mean_training_reward.item(),
+                        "train/t_mean_ep_length": mean_training_ep_length.item(),
+                        "eval/metric": metric,
+                        "time/total_timesteps": self.num_timesteps,
+                    },
+                    step=self.num_timesteps
+                )
             logger.info(f"Present metric {metric} | SOTA {self.best_metric}")
 
+            # if metric > self.best_metric:
+            #     logger.info(
+            #         f"New best metric of {metric} over {self.best_metric}"
+            #     )
+            #     self.best_metric = metric
+            #     if self.callback_on_new_best is not None:
+            #         self.callback_on_new_best.on_step()
             if metric > self.best_metric:
+
                 logger.info(
                     f"New best metric of {metric} over {self.best_metric}"
                 )
+
                 self.best_metric = metric
+
+                if self.best_model_save_path is not None:
+
+                    save_path = os.path.join(
+                        self.best_model_save_path,
+                        "best_model"
+                    )
+
+                    self.model.save(save_path)
+
+                    logger.info(
+                        f"Saved best model to {save_path}.zip"
+                    )
+
                 if self.callback_on_new_best is not None:
                     self.callback_on_new_best.on_step()
 
@@ -334,8 +358,8 @@ class TradingEvalCallback(EventCallback):
             f"{self.name}/return": net_value_list[-1],
             f"{self.name}/sharpe_ratio": sharpe_ratio_list[-1],
         }
-        
-        wandb.log(
-            trading_metric,
-            step=self.num_steps
-        )
+        if wandb.run is not None:
+            wandb.log(
+                trading_metric,
+                step=self.num_steps
+            )
