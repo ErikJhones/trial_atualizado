@@ -35,10 +35,14 @@ source trials/bin/activate
 conda activate trials
 ```
 
-## Dependencias
+## Dependências
 
-Instale o pytorch de acordo com sua máquina e GPU: [link instalação](https://pytorch.org/get-started/locally/)  
+Instale o pytorch de acordo com sua máquina e GPU: [link instalação](https://pytorch.org/get-started/locally/)   
 
+Dependências
+```bash
+pip install -r requirements.txt
+```
 
 ## How to Run?
 
