@@ -11,6 +11,7 @@ The requirements to develop the project.
 - Python ^3.11
 - Git
 - Python IDE (Visual Studio Code is recommended!)
+- Conda no [wandb](https://wandb.ai/) com chave e projeto configurados.
 
 ## montando repositório
 1. Criar o ambiente virtual  
