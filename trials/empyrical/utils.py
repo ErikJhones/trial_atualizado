@@ -25,10 +25,14 @@ import pandas as pd
 from pandas.tseries.offsets import BDay
 try:
     from pandas_datareader import data as web
-except ImportError:
-    msg = ("Unable to import pandas_datareader. Suppressing import error and "
-           "continuing. All data reading functionality will raise errors; but "
-           "has been deprecated and will be removed in a later version.")
+except Exception:
+    web = None
+
+    msg = (
+        "Unable to import pandas_datareader. "
+        "Continuing without datareader support."
+    )
+
     warnings.warn(msg)
 from .deprecate import deprecated
 

@@ -407,6 +407,10 @@ def main(
     Returns:
     Nothing to see here.
     """
+
+    # os.makedirs("log", exist_ok=True)
+    # os.makedirs("wandb", exist_ok=True)
+
     args = dict(
         log_dir=log_dir,
         saved_model_dir=saved_model_dir,
