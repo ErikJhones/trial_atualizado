@@ -33,11 +33,29 @@ class BestDevRewardCallback(BaseCallback):
         self.train_env = train_env
 
     def _on_step(self) -> bool:
-        self.test_env.worker_model = self.train_env.worker_model
-        self.test_env.eval(self.model, self.num_timesteps)
+        # self.test_env.worker_model = self.train_env.worker_model
+        # self.test_env.eval(self.model, self.num_timesteps)
+        # if self.valid_env is not None:
+        #     self.valid_env.worker_model = self.train_env.worker_model
+        #     self.valid_env.eval(self.model, self.num_timesteps)
+        self.test_env.unwrapped.worker_model = (
+            self.train_env.unwrapped.worker_model
+        )
+
+        self.test_env.unwrapped.eval(
+            self.model,
+            self.num_timesteps
+        )
+
         if self.valid_env is not None:
-            self.valid_env.worker_model = self.train_env.worker_model
-            self.valid_env.eval(self.model, self.num_timesteps)
+            self.valid_env.unwrapped.worker_model = (
+                self.train_env.unwrapped.worker_model
+            )
+
+            self.valid_env.unwrapped.eval(
+                self.model,
+                self.num_timesteps
+            )
         return True
 
 
@@ -138,12 +156,17 @@ class EvalCallback(EventCallback):
                         "Training and eval env are not wrapped the same way"
                     )
 
-            self.eval_env.worker_model = self.train_env.worker_model
+            # self.eval_env.worker_model = self.train_env.worker_model
+            self.eval_env.unwrapped.worker_model = (
+                self.train_env.unwrapped.worker_model
+            )
 
             # Note that eval_env and train_env are instance of ReinforceTradingEnv
             # evaluate_policy() will invoke step() method, which may trigger env.worker_model.learn()
-            backup = self.eval_env.is_eval
-            self.eval_env.is_eval = True
+            # backup = self.eval_env.is_eval
+            # self.eval_env.is_eval = True
+            backup = self.eval_env.unwrapped.is_eval
+            self.eval_env.unwrapped.is_eval = True
             (
                 episode_eval_rewards, 
                 episode_eval_lengths
@@ -156,10 +179,14 @@ class EvalCallback(EventCallback):
                 return_episode_rewards=True,
                 warn=self.warn,
             )
-            self.eval_env.is_eval = backup
+            # self.eval_env.is_eval = backup
+            self.eval_env.unwrapped.is_eval = backup
 
-            backup = self.train_env.is_eval
-            self.train_env.is_eval = True
+            # backup = self.train_env.is_eval
+            # self.train_env.is_eval = True
+            backup = self.train_env.unwrapped.is_eval
+            self.train_env.unwrapped.is_eval = True
+
             (
                 episode_training_rewards,
                 episode_training_lengths,
@@ -172,8 +199,9 @@ class EvalCallback(EventCallback):
                 return_episode_rewards=True,
                 warn=self.warn,
             )
-            self.train_env.is_eval = backup
-
+            # self.train_env.is_eval = backup
+            self.train_env.unwrapped.is_eval = backup
+            
             mean_eval_reward, std_reward = np.mean(
                 episode_eval_rewards
             ), np.std(episode_eval_rewards)
