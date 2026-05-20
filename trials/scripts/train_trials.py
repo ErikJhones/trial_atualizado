@@ -287,7 +287,7 @@ def train(args, run_id):
         if serial_selection
         else (args.asset_num * (args.asset_num - 1) // 2),
         "latent_vf": args.policy_network_hidden_dim,
-    }
+    } 
 
     model = A2C(
         PairSelectionActorCriticPolicy,
@@ -299,7 +299,8 @@ def train(args, run_id):
         ent_coef=args.ent_coef,
         policy_kwargs=policy_kwargs,
         verbose=0,
-        n_steps=1
+        n_steps=8,
+        device="cuda"
     )
 
     test_callback = BestDevRewardCallback(
@@ -364,15 +365,15 @@ def main(
     policy_network_hidden_dim: int = 64,
     seed: int = 13,
     patience_steps: int = 0,
-    eval_freq: int = 32,
-    train_steps: int = 1e4,
+    eval_freq: int = 200, #32,
+    train_steps: int = 1e4, #1e4
     learning_rate: float = 1e-4,
     dropout: float = 0.5,
     rl_gamma: float = 1,
     ent_coef: float = 1e-4,
     project: str = "learning_to_pair",
     entity: str = "jimin",
-    trading_train_steps: int = 1e3,
+    trading_train_steps: int = 50, #1e3
     trading_feature_extractor_feature_dim: int = 3,
     trading_feature_extractor_num_layers: int = 1,
     trading_feature_extractor_hidden_dim: int = 64,
@@ -382,7 +383,7 @@ def main(
     trading_log_dir: str = "trading_log",
     trading_rl_gamma: float = 1,
     trading_ent_coef: float = 1e-4,
-    trading_num_process: int = 1
+    trading_num_process: int = 4
 ) -> None:
     """
     Train l2r and its ablations
