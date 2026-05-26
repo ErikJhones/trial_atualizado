@@ -44,21 +44,6 @@ class TradingEnv(gym.Env):
         feature_dim: int,
         **kwargs,
     ):
-        """
-        :param form_date: 形成期的时间
-        :param trad_date: 交易期的时间
-        :param asset_name: 一个rolling内30支股票的symbol
-        :param form_asset_features: N x T x M 形成期特征
-        :param trad_asset_features: N x T x M 交易期特征
-        :param form_asset_log_prices: N x 1 形成期初价格
-        :param trad_asset_log_prices: N x 1 形成期初价格
-        :param feature_dim: 输入每个资产特征维度
-        :param kwargs: 其他输入关键字, 包括
-        :param init_net_value: 初始的净值ues时默认的值
-        :param parallel_selection: 是否为MultiCategoricalAction
-        :param trading_threshold: CointegrationStateMachine生成net_values时默认的值
-        :param stop_loss_threshold: CointegrationStateMachine生成net_val
-        """
         super(TradingEnv, self).__init__()
         self.name = name
         self.asset_num = len(asset_name)
@@ -124,19 +109,11 @@ class TradingEnv(gym.Env):
         return self.observation, {}
 
     def get_map_action(self, action):
-        """Map action according to selection mode
-
-        :param action: ([th.Tensor]) the log probabilities of actions
-        """
         if self.serial_selection:
             return action
         return self.index_map[action]
 
     def step(self, action):
-        """Reward according to action
-
-        :param action: ([th.Tensor]) the log probabilities of actions
-        """
         x_index, y_index = self.get_map_action(action)
 
         x_name = self.asset_name[x_index]
@@ -362,8 +339,7 @@ class TradingEnv(gym.Env):
             wandb_dict,
             step=step
         )
-
-
+ 
 class ReinforceTradingEnv(TradingEnv):
     def __init__(
         self,
@@ -378,22 +354,6 @@ class ReinforceTradingEnv(TradingEnv):
         feature_dim: int,
         **kwargs,
     ):
-        """
-        :param form_date: 形成期的时间
-        :param trad_date: 交易期的时间
-        irint (action)
-        :param asset_name: 一个rolling内30支股票的symbol
-        :param form_asset_features: N x T x M 形成期特征
-        :param trad_asset_features: N x T x M 交易期特征
-        :param form_asset_log_prices: N x 1 形成期初价格
-        :param trad_asset_log_prices: N x 1 形成期初价格
-        :param feature_dim: 输入每个资产特征维度
-        :param kwargs: 其他输入关键字, 包括
-        :param init_net_value: 初始的净值ues时默认的值
-        :param parallel_selection: 是否为MultiCategoricalAction
-        :param trading_threshold: CointegrationStateMachine生成net_values时默认的值
-        :param stop_loss_threshold: CointegrationStateMachine生成net_val
-        """
         super(TradingEnv, self).__init__()
         self.name = name
         self.is_eval = False
@@ -499,28 +459,13 @@ class ReinforceTradingEnv(TradingEnv):
 
         if kwargs["trading_num_process"] > 1:
 
-            def make_env(
-                date,
-                asset_name,
-                prices,
-            ):
-                """
-                Utility function for multiprocessed env.
-                :return: (Callable)
-                """
-
+            def make_env(date, asset_name, prices):
                 def _init() -> gym.Env:
                     pr = np.exp(prices)
                     pr = pr / pr[:, :1]
                     pr = np.log(pr)
-                    env = initialize_env(
-                        "train",
-                        date,
-                        asset_name,
-                        pr,
-                    )
+                    env = initialize_env("train", date, asset_name, pr)
                     return env
-
                 return _init
 
             self.train_env = SubprocVecEnv(
@@ -535,9 +480,9 @@ class ReinforceTradingEnv(TradingEnv):
             )
         else:
             self.train_env = initialize_env(
-            "train", self.form_date, asset_name, self.form_asset_log_prices
-        )
-        
+                "train", self.form_date, asset_name, self.form_asset_log_prices
+            )
+
         self.test_env = initialize_env(
             "test", self.trad_date, asset_name, self.trad_asset_log_prices
         )
@@ -560,7 +505,7 @@ class ReinforceTradingEnv(TradingEnv):
             self.worker_model = A2C(
                 "MultiInputPolicy",
                 self.train_env,
-                n_steps=16, # batch_size: trading_num_process
+                n_steps=16,
                 learning_rate=kwargs["trading_learning_rate"],
                 tensorboard_log=kwargs["trading_log_dir"],
                 seed=kwargs["seed"],
@@ -568,10 +513,9 @@ class ReinforceTradingEnv(TradingEnv):
                 ent_coef=kwargs["trading_ent_coef"],
                 policy_kwargs=policy_kwargs,
                 verbose=0,
-                device="cuda"
+                device="cuda",
             )
 
-        # Callback to obtain reward of manager from worker
         self.trad_callback = TradingEvalCallback(
             self.name,
             self.test_env
@@ -591,10 +535,6 @@ class ReinforceTradingEnv(TradingEnv):
         return self.observation, {}
 
     def get_map_action(self, action):
-        """Map action according to selection mode
-
-        :param action: ([th.Tensor]) the log probabilities of actions
-        """
         if self.serial_selection:
             return action
         if isinstance(action, np.ndarray):
@@ -602,33 +542,17 @@ class ReinforceTradingEnv(TradingEnv):
         return self.index_map[action]
 
     def set_trading_indexes(self, x_index, y_index):
-        """Set trading indexes for all envs
-
-        :param x_index: (int) the selected first asset index
-        :param y_index: (int) the selected second asset index
-        """
         trading_indexes = [x_index, y_index]
-
-        # VecEnv (multi-process) → usa set_attr
         if hasattr(self.train_env, "set_attr"):
             self.train_env.set_attr("trading_indexes", trading_indexes)
-        # Plain gym.Env (single process) → atribui diretamente
         else:
             self.train_env.trading_indexes = trading_indexes
-        # self.train_env.set_attr("trading_indexes", trading_indexes)
-
         if hasattr(self.test_env, "set_attr"):
             self.test_env.set_attr("trading_indexes", trading_indexes)
-        # Plain gym.Env (single process) → atribui diretamente
         else:
             self.test_env.trading_indexes = trading_indexes
-        # self.test_env.set_attr("trading_indexes", trading_indexes)
 
     def step(self, action):
-        """Reward according to action
-
-        :param action: ([th.Tensor]) the log probabilities of actions
-        """
         x_index, y_index = self.get_map_action(action)
         if x_index == y_index:
             return (
@@ -702,7 +626,7 @@ class StepTradingEnv(gym.Env):
         fund_ratio: float = 1.0,
         init_net_value: float = 1.0,
         risk_free: float = 0.000085,
-        successive_close_reward: float = 0,
+        successive_close_reward: float = -0.01,
         window_size: int = 1,
         max_len: int = 252,
     ):
@@ -731,9 +655,7 @@ class StepTradingEnv(gym.Env):
                 -40, 40, shape=(max_len,), dtype=np.float32
             ),
             "position": gym.spaces.Box(0, 2, shape=(max_len,), dtype=int),
-            "next_end": gym.spaces.Box(
-                0, 1, shape=(max_len,), dtype=int
-            ),  # 下一个step是否会done
+            "next_end": gym.spaces.Box(0, 1, shape=(max_len,), dtype=int),
             "hold_threshold": gym.spaces.Box(
                 0, 2, shape=(max_len,), dtype=int
             ),
@@ -745,10 +667,7 @@ class StepTradingEnv(gym.Env):
         }
         self.observation_space = gym.spaces.Dict(observation_dict)
 
-        # 画图用
         self.date = date
-
-        # Env设置
         self.commission_rate = commission_rate
         self.fund_ratio = fund_ratio
         self.risk_free = risk_free
@@ -757,17 +676,14 @@ class StepTradingEnv(gym.Env):
         self.successive_close_reward = successive_close_reward
         assert len(self.log_prices[0, :]) >= window_size + 1
 
-        # state
         self.position: Optional[int] = PositionState.bear
         self.start_idx: Optional[int] = None
         self.curr_idx: Optional[int] = None
         self.last_buy_idx: Optional[int] = None
         self.last_net_value: Optional[float] = None
-        # 实际的资金
         self.net_value: np.ndarray = np.array(
             [init_net_value] * max_len, dtype=float
         )
-        # 按照当前股票价格计算的净值
         self.unrealized_net_value: np.ndarray = np.array(
             [init_net_value] * max_len, dtype=float
         )
@@ -823,7 +739,6 @@ class StepTradingEnv(gym.Env):
         self.observation["hold_indicator"].fill(0)
         self.observation["action"].fill(-1)
 
-        # 填充window
         for i, j in enumerate(
             range(self.curr_idx + 1 - self.window_size, self.curr_idx + 1)
         ):
@@ -835,9 +750,6 @@ class StepTradingEnv(gym.Env):
         return self.observation, {}
 
     def get_net_value_change(self):
-        """
-        :return: 返回净值变化量
-        """
         return (
             get_curr_net_value(
                 self.asset_price[0],
@@ -853,7 +765,6 @@ class StepTradingEnv(gym.Env):
         )
 
     def step(self, action):
-        # take action_0
         reward = 0
         if (
             self.curr_idx - self.start_idx + self.window_size
@@ -865,16 +776,18 @@ class StepTradingEnv(gym.Env):
             if self.position == PositionState.bear:
                 self.last_buy_idx = self.curr_idx
             elif self.position == PositionState.long:
-                reward += self.get_net_value_change()
-                self.last_net_value += self.get_net_value_change()
+                net_change = self.get_net_value_change()  # FIX: calcula uma vez
+                reward += net_change
+                self.last_net_value += net_change
                 self.last_buy_idx = self.curr_idx
             self.position = PositionState.short
         elif action == Action.long:
             if self.position == PositionState.bear:
                 self.last_buy_idx = self.curr_idx
             elif self.position == PositionState.short:
-                reward += self.get_net_value_change()
-                self.last_net_value += self.get_net_value_change()
+                net_change = self.get_net_value_change()  # FIX: calcula uma vez
+                reward += net_change
+                self.last_net_value += net_change
                 self.last_buy_idx = self.curr_idx
             self.position = PositionState.long
         elif action == Action.close:
@@ -882,17 +795,16 @@ class StepTradingEnv(gym.Env):
                 self.position == PositionState.long
                 or self.position == PositionState.short
             ):
-                reward += self.get_net_value_change()
-                self.last_net_value += self.get_net_value_change()
+                net_change = self.get_net_value_change()  # FIX: calcula uma vez
+                reward += net_change
+                self.last_net_value += net_change
             else:
                 reward += self.successive_close_reward
             self.last_buy_idx = None
             self.position = PositionState.bear
         self.action_list.append(int(action))
 
-        # state转换
         self.curr_idx += 1
-        # 如果是done
         if self.curr_idx - self.start_idx + self.window_size == self.max_len:
             done = True
         else:
@@ -930,17 +842,12 @@ class StepTradingEnv(gym.Env):
 
         obs_idx = self.curr_idx - self.start_idx + self.window_size - 1
         self.observation["action"][obs_idx - 1] = int(action)
-        # sharpe_ratio依赖unrealized_net_value更新
         self.net_value[obs_idx] = curr_net_value
         self.unrealized_net_value[obs_idx] = unrealized_net_value
         sharpe_ratio = self.get_curr_sharpe_ratio()
 
         self.observation["net_value"][obs_idx] = curr_net_value
-
-        self.observation["unrealized_net_value"][
-            obs_idx
-        ] = unrealized_net_value
-
+        self.observation["unrealized_net_value"][obs_idx] = unrealized_net_value
         self.observation["sharpe_ratio"][obs_idx] = sharpe_ratio
         self.observation["position"][obs_idx] = int(self.position)
         self.observation["mask_len"][0] = obs_idx + 1
