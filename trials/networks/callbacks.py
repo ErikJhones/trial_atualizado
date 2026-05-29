@@ -326,26 +326,80 @@ class TradingEvalCallback(EventCallback):
         self,
         env,
     ):
-        # 记录测试env
-        obs = env.reset()
+
+        # ============================================
+        # RESET
+        # ============================================
+
+        reset_output = env.reset()
+
+        if isinstance(reset_output, tuple):
+
+            obs = reset_output[0]
+
+        else:
+
+            obs = reset_output
+
         action_list = []
         reward_list = []
         net_value_list = []
         sharpe_ratio_list = []
+
         while True:
-            action, _ = self.model.predict(obs, deterministic=True)
-            obs, reward, done, info = env.step(action)
+
+            action, _ = self.model.predict(
+                obs,
+                deterministic=True
+            )
+
+            step_output = env.step(action)
+
+            # ========================================
+            # GYMNASIUM MODERNO
+            # ========================================
+
+            if len(step_output) == 5:
+
+                (
+                    obs,
+                    reward,
+                    terminated,
+                    truncated,
+                    info
+                ) = step_output
+
+                done = terminated or truncated
+
+            else:
+
+                obs, reward, done, info = step_output
+
+            # ========================================
+            # VecEnv handling
+            # ========================================
+
             info = info[0]
             action = action[0]
             reward = reward[0]
+
             action_list.append(action)
             reward_list.append(reward)
-            net_value_list.append(info["net_value"])
-            sharpe_ratio_list.append(info["sharpe_ratio"])
+
+            net_value_list.append(
+                info["net_value"]
+            )
+
+            sharpe_ratio_list.append(
+                info["sharpe_ratio"]
+            )
 
             if done:
+
                 action_list[-1] = int(self.close_action)
+
                 break
+
         self.best_metric = {
             "num_timesteps": self.parent.num_timesteps,
             "actions": action_list,
@@ -354,12 +408,16 @@ class TradingEvalCallback(EventCallback):
             "sharpe_ratios": sharpe_ratio_list,
             "sharpe_ratio": sharpe_ratio_list[-1],
         }
+
         trading_metric = {
             f"{self.name}/return": net_value_list[-1],
             f"{self.name}/sharpe_ratio": sharpe_ratio_list[-1],
         }
+
         if wandb.run is not None:
+
             wandb.log(
                 trading_metric,
-                step=self.num_steps
+                step=self.parent.num_timesteps
             )
+
