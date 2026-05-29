@@ -299,7 +299,7 @@ def train(args, run_id):
         ent_coef=args.ent_coef,
         policy_kwargs=policy_kwargs,
         verbose=0,
-        n_steps=8,
+        n_steps=1,
         device="cuda"
     )
 
@@ -360,29 +360,29 @@ def main(
     asset_num: int = 30,
     feature_dim: int = 3,
     feature_extractor_hidden_dim: int = 64,
-    feature_extractor_num_layers: int = 1,
+    feature_extractor_num_layers: int = 2, #1
     feature_extractor_num_heads: int = 2,
     policy_network_hidden_dim: int = 64,
     seed: int = 13,
     patience_steps: int = 0,
-    eval_freq: int = 500, #32,
-    train_steps: int = 50000, #1e4
-    learning_rate: float = 3e-4,
+    eval_freq: int = 32, #32,
+    train_steps: int = 2000, #1e4
+    learning_rate: float = 1e-4,
     dropout: float = 0.5,
-    rl_gamma: float = 0.99,
-    ent_coef: float = 0.01,
+    rl_gamma: float = 1,
+    ent_coef: float = 1e-4,
     project: str = "learning_to_pair",
     entity: str = "jimin",
-    trading_train_steps: int = 200, #1e3
+    trading_train_steps: int = 1000, #1e3
     trading_feature_extractor_feature_dim: int = 3,
     trading_feature_extractor_num_layers: int = 1,
     trading_feature_extractor_hidden_dim: int = 64,
-    trading_dropout: float = 0.5,
+    trading_dropout: float = 0.0, #0.5
     trading_feature_extractor_num_heads: int = 2,
-    trading_learning_rate: float = 1e-4,
+    trading_learning_rate: float = 6e-4, #1e-4
     trading_log_dir: str = "trading_log",
     trading_rl_gamma: float = 1,
-    trading_ent_coef: float = 1e-4,
+    trading_ent_coef: float = 0.6,
     trading_num_process: int = 4
 ) -> None:
     """
