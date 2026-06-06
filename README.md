@@ -45,6 +45,12 @@ Dependências
 pip install -r requirements.txt
 ```
 
+## preparando dataset EUROPA
+Cole os csvs em `trials/data/EUROPA` depois execute.
+```bash
+python -m trials.preprocess.prepare_europe
+```
+
 ## How to Run?
 
 1. Single Run
