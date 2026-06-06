@@ -334,22 +334,27 @@ def df2log(df: pd.DataFrame) -> pd.DataFrame:
     Convert the values in df to log values.
 
     Args:
-    df: Pending df
+    df: Pending df 
 
     Returns:
     Processed df
     """
-    dataframe = pd.DataFrame(
-        {
-            "date": df["date"].tolist(),
-            "close_x": df["close_x"].apply(func=log_func).tolist(),
-            "open_x": df["open_x"].apply(func=log_func).tolist(),
-            "volume_x": df["volume_x"].apply(func=log_func).tolist(),
-            "close_y": df["close_y"].apply(func=log_func).tolist(),
-            "open_y": df["open_y"].apply(func=log_func).tolist(),
-            "volume_y": df["volume_y"].apply(func=log_func).tolist(),
-        }
-    )
+    # dataframe = pd.DataFrame(
+    #     {
+    #         "date": df["date"].tolist(),
+    #         "close_x": df["close_x"].apply(func=log_func).tolist(),
+    #         "open_x": df["open_x"].apply(func=log_func).tolist(),
+    #         "volume_x": df["volume_x"].apply(func=log_func).tolist(),
+    #         "close_y": df["close_y"].apply(func=log_func).tolist(),
+    #         "open_y": df["open_y"].apply(func=log_func).tolist(),
+    #         "volume_y": df["volume_y"].apply(func=log_func).tolist(),
+    #     }
+    # )
+    dataframe = df.copy()
+
+    cols_to_transform = [col for col in dataframe.columns if col != "date"]
+
+    dataframe[cols_to_transform] = dataframe[cols_to_transform].apply(log_func)
     return dataframe
 
 
